@@ -6,9 +6,6 @@ import (
 	"reflect"
 )
 
-//App
-//Router
-//
 
 type Router struct {
 	routeMap map[string]*Route
@@ -103,6 +100,3 @@ func (r *Router) AddRoute(route *Route) {
 	r.routeMap[route.url] = route
 }
 
-func testRoute() {
-	//	r := NewRoute().Url("/a/b/c").Methods([]string{"get", "post"}).Consume("application/json").Produce("application/json")
-}

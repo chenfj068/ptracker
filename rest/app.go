@@ -16,8 +16,8 @@ type RestApp struct {
 	*Router
 }
 
-func NewApp(port int, listenAddr, rootdir string, router *Router) *RestApp {
-	return &RestApp{port, listenAddr, rootdir, router}
+func NewApp(port int, listenAddr, rootdir string) *RestApp {
+	return &RestApp{port, listenAddr, rootdir, NewRouter()}
 }
 
 func (app *RestApp) Start() error {
