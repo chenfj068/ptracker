@@ -1,116 +1,64 @@
 package main
 
 import (
-	"fmt"
-	"io"
-	"log"
+	"encoding/json"
+	"github.com/cjf068/ptracker/rest"
 	"net/http"
-	"strings"
+	"reflect"
+	"fmt"
 )
 
-// hello world, the web server
-func HelloServer(w http.ResponseWriter, req *http.Request) {
-	io.WriteString(w, "hello, world!\n")
-}
-
 func main() {
-	testMatch()
-	http.HandleFunc("/hello", HelloServer)
-	err := http.ListenAndServe(":8880", nil)
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+	router := rest.NewRouter()
+	app := rest.NewApp(8800, "0.0.0.0", "/", router)
+	rout := rest.NewRoute().Consume("application/json").Methods([]string{"get", "post"}).Produce("application/json")
+	rout.Url("/p/lxy").RequestType(reflect.TypeOf(Model{})).Func(Echo)
+	app.AddRoute(rout)
+	app.Start()
+
+}
+
+func Echo(ctx *rest.RequestContext,v interface{})(interface{},error){
+	
+	fmt.Printf("%s\n",v)
+	m:=make(map[string]string)
+	m["lvy"]="love"
+	return m,nil
+	
 	}
 
+type Model struct {
+	Name  string `name:"name"`
+	Value int64  `name:"value"`
+	Id    int64  `name:"id"`
 }
 
-func testMatch() {
+func (m Model) String() string {
 
-	url, uri := "a/b/{d}/g", "a/b/d/g"
-	fmt.Printf("%v\n", match(url, uri))
-	url,uri="a/b/*/g","a/b/d/f/g"
-	fmt.Printf("%v\n", match(url, uri))
-	url,uri="a/b/*/c/g","a/b/d/g"
-	fmt.Printf("%v\n", match(url, uri))
-
-}
-func match(url, uri string) bool {
-	reqParts := strings.Split(uri, "/")
-	patParts := strings.Split(url, "/")
-	fmt.Printf("%v\n,%v\n",reqParts,patParts)
-	i, j := 0, 0
-	for i < len(reqParts) && j < len(patParts) {
-		if reqParts[i] == patParts[j] {
-			i++
-			j++
-		} else if patParts[j] == "*" {
-			if(j+1<len(patParts)&&patParts[j+1]==reqParts[i]){
-				j++
-				j++
-			}
-			i++
-			
-		} else if strings.Contains(patParts[j],"{") {
-			i++
-			j++
-		} else {
-			break
-		}
-	}
-	fmt.Printf("%d,%d\n",i,j)
-	if i == len(reqParts) && j == len(patParts) {
-		return true
-	}
-
-	return false
-
+	b, _ := json.Marshal(m)
+	return string(b)
 }
 
-type DispatcherHandler struct {
+type UserHandler struct {
 }
 
-type HttpDispatcher interface {
-	Dispatch(http.ResponseWriter, *http.Request)
-	RegisterHandler(handler *RequestHandler, url string, method ...string)
-	RegisterHandler2(handler *RequestHandler, extractor ParamsExtractor, url string, method ...string)
-}
+func (h *UserHandler) Handler(context *rest.RequestContext, params interface{}) interface{} {
 
-type MyDispatcher struct {
-}
-
-func (disp *MyDispatcher) Dispatch(http.ResponseWriter, *http.Request) {
-
-}
-func (disp *MyDispatcher) RegisterHandler(handler *RequestHandler, url string, method ...string) {
-
-}
-func (disp *MyDispatcher) RegisterHandler2(handler *RequestHandler, extractor ParamsExtractor, url string, method ...string) {
-
-}
-
-type MyParamsExtractor struct {
-}
-
-func (e *MyParamsExtractor) Extract(request *http.Request) interface{} {
 	return nil
 }
 
-func tt() {
-	var disp HttpDispatcher
-	disp = &MyDispatcher{}
-	disp.RegisterHandler2(nil, &MyParamsExtractor{}, "/users/id", "get", "put")
-	disp.RegisterHandler(nil, "", "get", "put")
+type ServerHandler struct {
+	disp rest.HttpDispatcher
 }
 
-type ParamsExtractor interface {
-	Extract(request *http.Request) interface{}
-}
-type RequestContext struct {
-	Request  *http.Request
-	Response *http.ResponseWriter
-}
+func (h ServerHandler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
+	h.disp.Dispatch(writer, req)
 
-//context wraped request and responseWriter
-//params  wrap parameters as field
-type RequestHandler interface {
-	Handler(context *RequestContext, params interface{})
+}
+func NewServerHandler() http.Handler {
+	disp := rest.NewDispatcher()
+	h := ServerHandler{disp}
+	//func (disp *SimpleDispatcher) RegisterHandler(handler RequestHandler, paramType reflect.Type, rspType ResponseType, url string, method ...string) {
+	//disp.RegisterHandler()
+	return h
 }

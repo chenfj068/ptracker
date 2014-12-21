@@ -16,8 +16,7 @@ func match(pattern, url string) bool {
 			j++
 		} else if patParts[j] == "*" {
 			if j+1 < len(patParts) && patParts[j+1] == reqParts[i] {
-				j++
-				j++
+				j = j + 2
 			}
 			i++
 

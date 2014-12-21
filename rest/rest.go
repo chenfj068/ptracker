@@ -2,14 +2,11 @@ package rest
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"reflect"
 	"strconv"
 )
-
-//this is a simple rest framework
-type DispatcherHandler struct {
-}
 
 type ResponseType uint8
 
@@ -22,7 +19,7 @@ const (
 )
 
 type HttpDispatcher interface {
-	Dispatch(*http.ResponseWriter, *http.Request)
+	Dispatch(http.ResponseWriter, *http.Request)
 	//map a handler to specified url pattern
 	//handler  concrete handler object,not nil
 	//paramType param wrap type,if nil then map
@@ -39,15 +36,30 @@ type SimpleDispatcher struct {
 func NewDispatcher() HttpDispatcher {
 	return &SimpleDispatcher{make(map[string]handlerSpec)}
 }
-func (disp *SimpleDispatcher) Dispatch(respWriter *http.ResponseWriter, req *http.Request) {
+func (disp *SimpleDispatcher) Dispatch(respWriter http.ResponseWriter, req *http.Request) {
 	//find the target handler
 	spec, ok := disp.getHandler(req)
-	if(ok){
+	if ok {
+		http.NotFound(respWriter, req)
 		return //return 404
 	}
-	v := spec.reqParseFunc(req, spec.reqType, spec.urlPattern)
+	v := spec.reqParseFunc(req, spec.reqType, spec.urlPattern) //parse request struct
 	ctx := NewRequestContext(req, respWriter)
-	spec.handler.Handler(ctx, v)
+	result := spec.handler.Handler(ctx, v)
+	switch spec.rspType {
+	case Json:
+		b, _ := json.Marshal(result)
+		respWriter.Header().Set("content-type", "application/json")
+		respWriter.Write(b)
+	case Xml:
+
+	case Html:
+
+	case PlainText:
+		ss := fmt.Sprintf("%v", result)
+		respWriter.Header().Set("content-type", "text/plain")
+		respWriter.Write([]byte(ss))
+	}
 
 }
 
@@ -55,8 +67,8 @@ func (disp *SimpleDispatcher) Dispatch(respWriter *http.ResponseWriter, req *htt
 func (disp *SimpleDispatcher) getHandler(req *http.Request) (handlerSpec, bool) {
 	uri := req.RequestURI
 	for pattern, spec := range disp.handlerMap {
-		if(match(pattern,uri)){
-			return spec,true
+		if match(pattern, uri) {
+			return spec, true
 		}
 	}
 	return handlerSpec{}, false
@@ -161,11 +173,11 @@ func MyParseFunc(request *http.Request, paramType reflect.Type, url string) inte
 
 type RequestContext struct {
 	Request  *http.Request
-	Response *http.ResponseWriter
+	Response http.ResponseWriter
 	valueMap map[string]interface{}
 }
 
-func NewRequestContext(request *http.Request, respWriter *http.ResponseWriter) *RequestContext {
+func NewRequestContext(request *http.Request, respWriter http.ResponseWriter) *RequestContext {
 	return &RequestContext{request, respWriter, make(map[string]interface{})}
 }
 
@@ -174,12 +186,6 @@ func (context *RequestContext) SetObject(key string, value interface{}) {
 }
 func (context *RequestContext) getObject(key string) interface{} {
 	return context.valueMap[key]
-}
-
-//context wraped request and responseWriter
-//params  wrap parameters as field
-type RequestHandler interface {
-	Handler(context *RequestContext, params interface{}) interface{}
 }
 
 type HelloHandler struct{}
