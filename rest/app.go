@@ -20,7 +20,7 @@ func NewApp(port int, listenAddr, rootdir string) *RestApp {
 }
 
 func (app *RestApp) Start() error {
-	err := http.ListenAndServe(":8880", app)
+	err := http.ListenAndServe(":8080", app)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
@@ -52,7 +52,7 @@ func (disp *RestApp) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	} else {
 		m, ok := reflect.TypeOf(route.handler).MethodByName(route.handlerMethod)
 		if ok {
-			rv := m.Func.Call([]reflect.Value{reflect.ValueOf(route.handler),reflect.ValueOf(ctx), reflect.ValueOf(model)})
+			rv := m.Func.Call([]reflect.Value{reflect.ValueOf(route.handler), reflect.ValueOf(ctx), reflect.ValueOf(model)})
 			vv := rv[0].Interface()
 			b, _ := json.Marshal(vv)
 			writer.Write(b)

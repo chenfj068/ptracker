@@ -1,7 +1,6 @@
 package rest
 
 import (
-	
 	"net/http"
 )
 
@@ -14,9 +13,6 @@ const (
 	PlainText ResponseType = ResponseType(3)
 	//pb ?
 )
-
-
-
 
 type RequestContext struct {
 	Request  *http.Request
@@ -34,4 +30,3 @@ func (context *RequestContext) SetObject(key string, value interface{}) {
 func (context *RequestContext) getObject(key string) interface{} {
 	return context.valueMap[key]
 }
-

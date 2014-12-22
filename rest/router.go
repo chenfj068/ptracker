@@ -5,7 +5,6 @@ import (
 	"reflect"
 )
 
-
 type Router struct {
 	routeMap map[string]*Route
 }
@@ -97,4 +96,3 @@ func (r *Router) getRoute(url string) (*Route, bool) {
 func (r *Router) AddRoute(route *Route) {
 	r.routeMap[route.url] = route
 }
-

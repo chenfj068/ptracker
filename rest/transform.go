@@ -4,12 +4,17 @@ package rest
 //translate response object to byte array
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
+)
+
+var (
+	not_found error
 )
 
 //request
@@ -20,7 +25,7 @@ type RequestWrapper func(*http.Request, reflect.Type, string) interface{}
 func defaultWrapper(request *http.Request, paramType reflect.Type, uri string) interface{} {
 	request.ParseForm()
 	reqUrl := request.URL.Path
-	reqUri:=request.RequestURI
+	reqUri := request.RequestURI
 	idx := strings.IndexByte(reqUri, '?')
 	var urlValues url.Values
 	if idx > 0 && (idx+1) < len(reqUri) {
@@ -39,7 +44,15 @@ func defaultWrapper(request *http.Request, paramType reflect.Type, uri string) i
 				m[name] = value
 			}
 		}
-		return m
+
+		vv := strings.Split(reqUrl, "/")
+		cc := strings.Split(uri, "/")
+		for i, v := range cc {
+			if strings.Contains(v, "{") {
+				m[v[1:len(v)-1]] = []string{vv[i]}
+			}
+		}
+		return Params(m)
 	}
 	if request.Header.Get("content-type") == "application/json" {
 		decoder := json.NewDecoder(request.Body)
@@ -107,4 +120,76 @@ func defaultWrapper(request *http.Request, paramType reflect.Type, uri string) i
 	}
 
 	return jp.Interface()
+}
+
+type Params map[string][]string
+
+func (p Params) Contains(name string) bool {
+	if _, ok := p[name]; ok {
+		return true
+	}
+
+	return false
+}
+
+func (p Params) GetInt(name string) (int64, error) {
+	if v, ok := p[name]; ok {
+		i, er := strconv.ParseInt(v[0], 10, 64)
+		return i, er
+	} else {
+		return -1, errors.New("param not found:" + name)
+	}
+}
+
+func (p Params) GetString(name string) (string, error) {
+	if v, ok := p[name]; ok {
+		return v[0], nil
+	} else {
+		return "", notFound(name)
+	}
+}
+
+func (p Params) GetStringArray(name string) ([]string, error) {
+	if v, ok := p[name]; ok {
+		return v, nil
+	} else {
+		return nil, notFound(name)
+	}
+}
+
+func (p Params) GetFloat(name string) (float64, error) {
+	if v, ok := p[name]; ok {
+		f, er := strconv.ParseFloat(v[0], 64)
+		return f, er
+	} else {
+		return 0.0, notFound(name)
+	}
+}
+
+func (p Params) GetIntArray(name string) ([]int64, error) {
+	if v, ok := p[name]; ok {
+		ri := make([]int64, len(v), len(v))
+		for i, vi := range v {
+			r, er := strconv.ParseInt(vi, 10, 64)
+			if er != nil {
+				return nil, er
+			}
+			ri[i] = r
+		}
+		return ri, nil
+	} else {
+		return nil, notFound(name)
+	}
+}
+
+func (p Params) ParamNames() []string {
+	names := make([]string, 0, len(p))
+	for k, _ := range p {
+		names = append(names, k)
+	}
+	return names
+}
+func notFound(name string) error {
+
+	return errors.New("param not found:" + name)
 }
