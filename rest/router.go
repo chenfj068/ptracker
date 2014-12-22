@@ -2,7 +2,6 @@ package rest
 
 //request , handler manager
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -89,7 +88,6 @@ func NewRouter() *Router {
 func (r *Router) getRoute(url string) (*Route, bool) {
 
 	for p, route := range r.routeMap {
-		fmt.Printf("%s,%s\n", p, url)
 		if match(p, url) {
 			return route, true
 		}

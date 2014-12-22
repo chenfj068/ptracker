@@ -13,15 +13,18 @@ import (
 )
 
 //request
+//target wrapped type
 //uri pattern
 type RequestWrapper func(*http.Request, reflect.Type, string) interface{}
 
 func defaultWrapper(request *http.Request, paramType reflect.Type, uri string) interface{} {
 	request.ParseForm()
-	idx := strings.IndexByte(uri, '?')
+	reqUrl := request.URL.Path
+	reqUri:=request.RequestURI
+	idx := strings.IndexByte(reqUri, '?')
 	var urlValues url.Values
-	if idx > 0 && (idx+1) < len(uri) {
-		qs := uri[idx+1:]
+	if idx > 0 && (idx+1) < len(reqUri) {
+		qs := reqUri[idx+1:]
 		urlValues, _ = url.ParseQuery(qs)
 	}
 	if paramType == nil {
@@ -50,19 +53,37 @@ func defaultWrapper(request *http.Request, paramType reflect.Type, uri string) i
 	fn := paramType.NumField()
 	for i := 0; i < fn; i++ {
 		v := jl.Field(i)
+
+		var pv string
 		name := paramType.Field(i).Tag.Get("name")
-		if name == "" {
+		pathVariable := paramType.Field(i).Tag.Get("path")
+		if name == "" && pathVariable == "" {
 			name = paramType.Field(i).Name
 		}
-		fmt.Printf("name %s\n", name)
-		pv := request.FormValue(name)
+		if pathVariable != "" {
+			ss := strings.Split(uri, "/")
+			idx, sep := 0, ""
+			for idx, sep = range ss {
+				if sep == "{"+pathVariable+"}" {
+					break
+				}
+			}
+			ss2 := strings.Split(reqUrl, "/")
+			if idx < len(ss2) {
+				pv = ss2[idx]
+			}
+		} else {
+			fmt.Printf("name %s\n", name)
+			pv = request.FormValue(name)
 
-		if pv == "" {
-			pv = urlValues.Get(name)
+			if pv == "" {
+				pv = urlValues.Get(name)
+			}
+			if pv == "" {
+				continue
+			}
 		}
-		if pv == "" {
-			continue
-		}
+
 		switch v.Type().Kind() {
 		case reflect.Int:
 			fallthrough

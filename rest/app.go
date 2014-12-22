@@ -2,7 +2,6 @@ package rest
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"reflect"
@@ -46,7 +45,6 @@ func (disp *RestApp) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	} else {
 		model = defaultWrapper(req, route.requestType, route.url)
 	}
-	fmt.Printf("%s\n", model)
 	if route.handlerFunc != nil {
 		rv, _ := route.handlerFunc(ctx, model)
 		b, _ := json.Marshal(rv)
@@ -54,7 +52,7 @@ func (disp *RestApp) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	} else {
 		m, ok := reflect.TypeOf(route.handler).MethodByName(route.handlerMethod)
 		if ok {
-			rv := m.Func.Call([]reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(model)})
+			rv := m.Func.Call([]reflect.Value{reflect.ValueOf(route.handler),reflect.ValueOf(ctx), reflect.ValueOf(model)})
 			vv := rv[0].Interface()
 			b, _ := json.Marshal(vv)
 			writer.Write(b)
