@@ -5,7 +5,7 @@ package rest
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
+	//"fmt"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -32,6 +32,7 @@ func defaultWrapper(request *http.Request, paramType reflect.Type, uri string) i
 		qs := reqUri[idx+1:]
 		urlValues, _ = url.ParseQuery(qs)
 	}
+//	fmt.Printf("url values:%v\n",urlValues)
 	if paramType == nil {
 		m := make(map[string][]string)
 		values := request.Form
@@ -86,9 +87,7 @@ func defaultWrapper(request *http.Request, paramType reflect.Type, uri string) i
 				pv = ss2[idx]
 			}
 		} else {
-			fmt.Printf("name %s\n", name)
 			pv = request.FormValue(name)
-
 			if pv == "" {
 				pv = urlValues.Get(name)
 			}
@@ -165,6 +164,31 @@ func (p Params) GetFloat(name string) (float64, error) {
 		return 0.0, notFound(name)
 	}
 }
+
+
+func (p Params)GetFloatArray(name string)([]float64,error){
+	if v,ok:=p[name];ok{
+		r:=make([]float64,0,len(v))
+		for i,vv:=range v{
+			f,er:=strconv.ParseFloat(vv,64)
+			if(er!=nil){
+				return nil,er
+			}
+			r[i]=f
+		}
+		return r,nil
+	}else{
+		return nil,notFound(name)
+	}
+}
+
+func (p Params)GetBool(name string)(bool,error){
+	if v,ok:=p[name];ok{
+		return strconv.ParseBool(v[0])
+	}
+	return false,notFound(name)
+}
+
 
 func (p Params) GetIntArray(name string) ([]int64, error) {
 	if v, ok := p[name]; ok {

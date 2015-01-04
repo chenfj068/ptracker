@@ -10,11 +10,16 @@ import (
 
 func main(){
 	
-	app:=rest.NewApp(8080,"0.0.0.0","/")
+	app:=rest.NewApp(8070,"","/")
+	//a/b/c/*/ac
+	//a/b/{v}/d
+	
 	
 	route:=rest.NewRoute().Func(getUser)
 	route.Url("/users/byid/{id}").Produce("application/json").Methods([]string{"get"})
+	
 	app.AddRoute(route)
+	
 	
 	croute:=rest.NewRoute().Url("/users/add").Methods([]string{"get","post"})
 	croute.Produce("text/plain").RequestType(reflect.TypeOf(User{})).Handler(UHandler{},"CreateUser")
@@ -38,5 +43,5 @@ type UHandler struct{
 
 func (h UHandler)CreateUser(ctx *rest.RequestContext,v interface{})(interface{},error){
 	fmt.Printf("%s\n",v)
-	return "ok",nil
+	return v,nil
 }

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+	"fmt"
 )
 
 type RestApp struct {
@@ -20,7 +21,9 @@ func NewApp(port int, listenAddr, rootdir string) *RestApp {
 }
 
 func (app *RestApp) Start() error {
-	err := http.ListenAndServe(":8080", app)
+	add:=app.listenAddr+":"+fmt.Sprintf("%d",app.port)
+	fmt.Printf("addr :%s\n",add)
+	err := http.ListenAndServe(add, app)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
@@ -29,6 +32,7 @@ func (app *RestApp) Start() error {
 }
 
 func (disp *RestApp) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
+	fmt.Printf("%s\n","servehttp")
 	uri := req.RequestURI
 	if strings.Contains(uri, "?") {
 		uri = strings.Split(uri, "?")[0]
